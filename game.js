@@ -279,14 +279,13 @@ function keyboard_add_events() {
 function click_check() {
     switch (mouse_on) {
         case "play_button":
-            menu_music.load();
-
             if (selected_enemy == "human") {
                 alert("Not ready yet!");
             }
             else {
                 mouse_on = "";
                 round_initiate();
+                menu_music.load();
                 play_radio();
                 inMenu = false;
             }
