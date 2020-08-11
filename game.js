@@ -886,7 +886,9 @@ function ayy_timer_decrease() {
             ayy_timer = 0;
         }
     }
-    setTimeout(ayy_timer_decrease, ayy_spawn_interval / 360);
+    if (ship1_lifes > 0 && ship2_lifes > 0) {
+        setTimeout(ayy_timer_decrease, ayy_spawn_interval / 360);
+    }
 }
 
 function draw_ayy_timer() {
