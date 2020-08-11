@@ -1,0 +1,22 @@
+body {
+    background-color: #212121;
+    height: 768px;
+    margin: 0;
+}
+
+#canv {
+    display: block;
+    margin: 0 auto;
+}
+
+#canv:not(.active_cursor):not(.no_cursor) {
+    cursor: url(images/cursor.png), auto;
+}
+
+.active_cursor {
+    cursor: url(images/cursor_active2.png), auto;
+}
+
+.no_cursor {
+    cursor: none;
+}
