@@ -279,14 +279,13 @@ function keyboard_add_events() {
 function click_check() {
     switch (mouse_on) {
         case "play_button":
-            menu_music.load();
-
             if (selected_enemy == "human") {
                 alert("Not ready yet!");
             }
             else {
                 mouse_on = "";
                 round_initiate();
+                menu_music.load();
                 play_radio();
                 inMenu = false;
             }
@@ -656,8 +655,8 @@ function bullets_update() {
 
         // Aliens fleet collide check
         ayy_fleet.forEach(function (item2, i2, arr2) {
-            if (item.x_pos >= item2.x_pos && item.x_pos + 6 <= item2.x_pos + ayy_img.width &&
-                item.y_pos >= item2.y_pos && item.y_pos + 25 <= item2.y_pos + ayy_img.height) {
+            if (item.x_pos + 6 >= item2.x_pos && item.x_pos <= item2.x_pos + ayy_img.width &&
+                item.y_pos <= item2.y_pos + ayy_img.height && item.y_pos + 25 >= item2.y_pos) {
                 if (item.super_bullet == false) {
                     bullets.splice(i, 1);
                 }
@@ -887,7 +886,9 @@ function ayy_timer_decrease() {
             ayy_timer = 0;
         }
     }
-    setTimeout(ayy_timer_decrease, ayy_spawn_interval / 360);
+    if (ship1_lifes > 0 && ship2_lifes > 0) {
+        setTimeout(ayy_timer_decrease, ayy_spawn_interval / 360);
+    }
 }
 
 function draw_ayy_timer() {
