@@ -56,7 +56,12 @@ function global_params_init() {
     lang = "ru";
     mouse_on = "";
     selected_enemy = "ai";
-    sounds = true;
+    try {
+        sounds = sounds;
+    }
+    catch (Error) {
+        sounds = true;
+    }
 }
 
 function create_images() {
@@ -150,10 +155,15 @@ function create_images() {
 
 function create_audio() {
     menu_music = new Audio("sounds/music/menu.mp3");
+    menu_music.volume = 0.5;
     pew_sound = new Audio("sounds/pew.wav");
+    pew_sound.volume = 0.5;
     boom_sound = new Audio("sounds/boom.wav");
+    boom_sound.volume = 0.5;
     new_fleet_sound = new Audio("sounds/new_fleet.wav");
+    new_fleet_sound.volume = 0.5;
     get_extra_sound = new Audio("sounds/get_extra.wav");
+    get_extra_sound.volume = 0.5;
 
     music = [
         new Audio("sounds/music/1.mp3"),
@@ -165,6 +175,7 @@ function create_audio() {
     ];
 
     radio = new Audio();
+    radio.volume = 0.5;
 
     tracks = [];
     for (var i = 0; i < music.length; i = i) {
