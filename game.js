@@ -59,7 +59,7 @@ function init() {
 
 function io_init() {
     try {
-        socket = io('http://localhost:1337');
+        socket = io('http://178.205.34.212:1337');
     }
     catch (ReferenceError) {
         // nothing.
