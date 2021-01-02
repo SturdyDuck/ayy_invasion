@@ -3,10 +3,8 @@ var ctx = canv.getContext('2d');
 
 var press_here_fade_alpha = 1;
 var press_here_pressed = false;
-press_here();
-io_init();
 
-
+create_images();
 
 function press_here() {
     ctx.fillStyle = "black";
@@ -54,7 +52,6 @@ function init() {
     setTimeout(function () {
         started = false;
     }, 500);
-    create_images();
     create_audio();
 
     play_menu_music();
@@ -229,6 +226,9 @@ function create_images() {
 
 
     collect_bg_frames();
+
+    press_here();
+    io_init();
 }
 
 function create_audio() {
