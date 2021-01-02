@@ -59,7 +59,7 @@ function init() {
 
 function io_init() {
     try {
-        socket = io('https://f9d8c93778d5.ngrok.io');
+        socket = io('https://swift-dragon-15.loca.lt');
     }
     catch (ReferenceError) {
         // nothing.
