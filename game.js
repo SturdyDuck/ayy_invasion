@@ -59,7 +59,7 @@ function init() {
 
 function io_init() {
     try {
-        socket = io('https://swift-dragon-15.loca.lt');
+        socket = io('http://smetana.hopto.org:1337');
     }
     catch (ReferenceError) {
         // nothing.
