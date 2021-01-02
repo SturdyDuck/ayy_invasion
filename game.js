@@ -59,7 +59,7 @@ function init() {
 
 function io_init() {
     try {
-        socket = io('https://178.205.34.212:1337');
+        socket = io('https://f9d8c93778d5.ngrok.io');
     }
     catch (ReferenceError) {
         // nothing.
