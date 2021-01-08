@@ -119,6 +119,8 @@ function io_init() {
 
 function initDraw() {
     requestAnimationFrame(draw);
+    start_point_x = (canv.width / 2) - ingame_bg[0].width;
+    start_point_y = (canv.height - ingame_bg[0].height) / 2;
 }
 
 function global_params_init() {
@@ -183,10 +185,8 @@ function create_images() {
     ship2_engines[0].src = "images/ship2_engines1.png";
     ship2_engines[1].src = "images/ship2_engines2.png";
 
-    ship1_protected = new Image();
-    ship2_protected = new Image();
-    ship1_protected.src = "images/ship_shield.png";
-    ship2_protected.src = "images/ship2_shield.png";
+    ship_shield = new Image();
+    ship_shield.src = "images/ship_shield.png";
 
     ship2_invis = new Image();
     ship2_invis.src = "images/ship_invis.png";
@@ -771,7 +771,7 @@ function bullets_update() {
         if (item.x_pos >= ship1.x && item.x_pos + 6 <= ship1_x2 &&
             item.y_pos >= ship1.y && item.y_pos + 25 <= ship1_y2) {
             if (item.owner == "ship2_img" && ship1.alive) {
-                if (ship1.shield == true) {
+                if (ship1.shield == true && item.super_bullet == false) {
                     ship1.shield = false;
                 }
                 else {
@@ -786,7 +786,7 @@ function bullets_update() {
         else if (item.x_pos >= ship2.x && item.x_pos + 6 <= ship2_x2 &&
             item.y_pos >= ship2.y && item.y_pos + 25 <= ship2_y2) {
             if (item.owner == "ship1_img" && ship2.alive) {
-                if (ship2.shield == true) {
+                if (ship2.shield == true && item.super_bullet == false) {
                     ship2.shield = false;
                 }
                 else {
@@ -857,21 +857,24 @@ function ingame_draw() {
 
 function draw_ingame_bg() {
     // num: 1 - for space, and 2 - for structures.
-    var start_point_x = (canv.width / 2) - ingame_bg[0].width;
-    var start_point_y = (canv.height - ingame_bg[0].height) / 2;
-
     ctx.drawImage(ingame_bg[0], start_point_x, start_point_y);
-    ctx.drawImage(ingame_bg[0], start_point_x + ingame_bg[0].width, start_point_y);
+
+    ctx.drawImage(ingame_bg[0], start_point_x + ingame_bg[0].width, start_point_y); // Y-center bg
+    //ctx.drawImage(ingame_bg[0], start_point_x + ingame_bg[0].width, start_point_y + ingame_bg[0].height); // Below it
+    ctx.drawImage(ingame_bg[0], start_point_x + ingame_bg[0].width, start_point_y - ingame_bg[0].height); // Over it
+    ctx.drawImage(ingame_bg[0], start_point_x, start_point_y - ingame_bg[0].height);
+
+    if (start_point_y == ingame_bg[0].height) {
+        start_point_y = 0;
+    }
+
+    start_point_y ++;
 }
 
 function draw_ships() {
     if (ship1.alive) {
-        console.log(isSecondPlayer);
         if (isSecondPlayer == true && ship1.extras[4] > 0) {
             ctx.drawImage(ship2_invis, ship1.x, ship1.y);
-        }
-        else if (ship1.shield) {
-            ctx.drawImage(ship1_protected, ship1.x, ship1.y);
         }
         else {
             ctx.drawImage(ship1_img, ship1.x, ship1.y);
@@ -880,13 +883,17 @@ function draw_ships() {
         if (ship1.extras[4] == 0) {
             ctx.drawImage(ship1_engines[ship1.engines_frame - 1], ship1.x + 25.5, ship1.y + ship1_img.height - 2);
         }
+
+        //shield
+        if (ship1.shield) {
+            ctx.globalAlpha = 0.625;
+            ctx.drawImage(ship_shield, ship1.x - 10, ship1.y - 5);
+            ctx.globalAlpha = 1;
+        }
     }
     if (ship2.alive) {
         if (ship2.extras[4] > 0 && isSecondPlayer == false) {
             ctx.drawImage(ship2_invis, ship2.x, ship2.y);
-        }
-        else if (ship2.shield) {
-            ctx.drawImage(ship2_protected, ship2.x, ship2.y);
         }
         else {
             ctx.drawImage(ship2_img, ship2.x, ship2.y);
@@ -894,6 +901,19 @@ function draw_ships() {
 
         if (ship2.extras[4] == 0) {
             ctx.drawImage(ship2_engines[ship2.engines_frame - 1], ship2.x + 10, ship2.y + 24);
+        }
+
+        //shield
+        if (ship2.shield) {
+            ctx.save();
+            ctx.translate(ship2.x + (ship2_img.width / 2), ship2.y + (ship2_img.height / 2));
+            ctx.rotate(Math.PI);
+            
+            ctx.globalAlpha = 0.625;
+            ctx.drawImage(ship_shield, -(ship2_img.width  / 2) - 10, -(ship2_img.height / 2) - 5);
+            ctx.globalAlpha = 1;
+
+            ctx.restore();
         }
     }
 }
@@ -1466,16 +1486,22 @@ function draw_lifes() {
     var img_y = sound_icon_y + 100;
 
     var ship_lifes;
+    var ship2_lifes;
 
     if (isSecondPlayer == true) {
         ship_lifes = ship2.lifes;
+        ship2_lifes = ship1.lifes;
     }
     else {
         ship_lifes = ship1.lifes;
+        ship2_lifes = ship2.lifes;
     }
 
     for (var i = 0; i < ship_lifes; i++) {
-        ctx.drawImage(life_img, img_x, img_y + (life_img.height * i));
+        ctx.drawImage(life_img, img_x, img_y + (30 * i));
+    }
+    for (var i = 0; i < ship2_lifes; i++) {
+        ctx.drawImage(life_img, 30, 100 + (30 * i));
     }
 }
 
