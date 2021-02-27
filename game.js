@@ -192,7 +192,7 @@ function create_images() {
     ship2_invis.src = "images/ship_invis.png";
 
     life_img = new Image();
-    life_img.src = "images/small_ship.png";
+    life_img.src = "images/bonus/life.png";
 
     ingame_bg = [
         new Image()
@@ -219,8 +219,8 @@ function create_images() {
     extra_imgs[3].src = "images/bonus/super_bullet.png";
     extra_imgs[4].src = "images/bonus/invis.png";
     extra_imgs[5].src = "images/bonus/invis_bullet.png";
-    extra_imgs[6].src = "images/small_ship.png";
-    extra_imgs[7].src = "images/bonus/shield.svg";
+    extra_imgs[6].src = "images/bonus/life.png";
+    extra_imgs[7].src = "images/bonus/shield.png";
     extra_imgs[8].src = "images/bonus/super_bullet2.png";
 
 
@@ -999,6 +999,13 @@ function check_direction() {
 }
 
 function shoot(ship, x, y) {
+    // For bonus images testing
+    //drop_extra("ship1_img", "2x_bullets_speed", 1, "green", 400, 0);
+    //drop_extra("ship1_img", "2x_ship_speed", 2, "green", 400, 0);
+    //drop_extra("ship1_img", "extra_life", 6, "purple", 400, 0);
+    //drop_extra("ship1_img", "shield", 7, "purple", 400, 0);
+    //drop_extra("ship1_img", "invision", 4, "gold", 400, 0);
+
     var cs = can_shoot(ship);
     var bullet_speed = 10;
 
@@ -1293,16 +1300,16 @@ function draw_loot() {
         ctx.closePath();
 
         if (item.name == "2x_ship_speed") {
-            ctx.drawImage(extra_imgs[item.image], img_x - 11, item.y_pos - 14, 30, 30);
+            ctx.drawImage(extra_imgs[item.image], img_x - 7, item.y_pos - 14, 30, 30);
         }
         else if (item.name == "extra_life") {
-            ctx.drawImage(extra_imgs[item.image], img_x - 10, item.y_pos - 14, 30, 30);
+            ctx.drawImage(extra_imgs[item.image], img_x - 8, item.y_pos - 14, 25, 25);
         }
         else if (item.name == "shield") {
-            ctx.drawImage(extra_imgs[item.image], img_x - 10, item.y_pos - 14, 30, 30);
+            ctx.drawImage(extra_imgs[item.image], img_x - 8, item.y_pos - 14, 30, 30);
         }
         else if (item.name == "invision") {
-            ctx.drawImage(extra_imgs[item.image], img_x - 7, item.y_pos - 13, 25, 25)
+            ctx.drawImage(extra_imgs[item.image], img_x - 8, item.y_pos - 20, 25, 35)
         }
         else {
             ctx.drawImage(extra_imgs[item.image], img_x + 2, item.y_pos - 14);
