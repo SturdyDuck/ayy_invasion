@@ -59,7 +59,7 @@ function init() {
 
 function io_init() {
     try {
-        socket = io('https://smetana.hopto.org:1337');
+        socket = io('https://smetanka.hopto.org:1337', {secure: true});
     }
     catch (ReferenceError) {
         // nothing.
@@ -1294,25 +1294,26 @@ function draw_loot() {
         var img_x = item.x_pos - 5;
         ctx.strokeStyle = item.circle_color;
         ctx.lineWidth = 7;
+        /* CIRCLE DRAW 
         ctx.beginPath();
         ctx.arc(item.x_pos, item.y_pos, 20, 0, 2 * Math.PI);
         ctx.stroke();
-        ctx.closePath();
+        ctx.closePath(); */
 
         if (item.name == "2x_ship_speed") {
-            ctx.drawImage(extra_imgs[item.image], img_x - 7, item.y_pos - 14, 30, 30);
+            ctx.drawImage(extra_imgs[item.image], img_x, item.y_pos - 14, 50, 50);
         }
         else if (item.name == "extra_life") {
-            ctx.drawImage(extra_imgs[item.image], img_x - 8, item.y_pos - 14, 25, 25);
+            ctx.drawImage(extra_imgs[item.image], img_x, item.y_pos - 14, 50, 50);
         }
         else if (item.name == "shield") {
-            ctx.drawImage(extra_imgs[item.image], img_x - 8, item.y_pos - 14, 30, 30);
+            ctx.drawImage(extra_imgs[item.image], img_x, item.y_pos - 14, 50, 50);
         }
         else if (item.name == "invision") {
-            ctx.drawImage(extra_imgs[item.image], img_x - 8, item.y_pos - 20, 25, 35)
+            ctx.drawImage(extra_imgs[item.image], img_x, item.y_pos - 20, 50, 60)
         }
         else {
-            ctx.drawImage(extra_imgs[item.image], img_x + 2, item.y_pos - 14);
+            ctx.drawImage(extra_imgs[item.image], img_x, item.y_pos - 14);
         }
     })
 }
@@ -1505,10 +1506,18 @@ function draw_lifes() {
     }
 
     for (var i = 0; i < ship_lifes; i++) {
-        ctx.drawImage(life_img, img_x, img_y + (30 * i));
+        ctx.save();
+        ctx.translate(img_x + (life_img.width / 2), img_y + (life_img.height / 2) + (life_img.height * i));
+        ctx.rotate(Math.PI / 180 * -55);
+        ctx.drawImage(life_img, 0, 0);
+        ctx.restore();
     }
     for (var i = 0; i < ship2_lifes; i++) {
-        ctx.drawImage(life_img, 30, 100 + (30 * i));
+        ctx.save();
+        ctx.translate(30 + (life_img.width / 2), 100 + (life_img.height / 2) + (life_img.height * i));
+        ctx.rotate(Math.PI / 180 * 55);
+        ctx.drawImage(life_img, 0, 0);
+        ctx.restore();
     }
 }
 
