@@ -59,10 +59,11 @@ function init() {
 
 function io_init() {
     try {
-        socket = io('https://smetanka.hopto.org:1337', {secure: true});
+        socket = io.connect('https://smetanka.hopto.org:1337', {
+			transports: ['websocket']
+			});
     }
-    catch (ReferenceError) {
-        // nothing.
+    catch (err) {
     }
 
     isSecondPlayer = false;
