@@ -104,7 +104,7 @@ function io_init() {
         else {
             alert('LOOSER');
         }
-	isSecondPlayer = false;
+		isSecondPlayer = false;
     })
 
     socket.on('ready reset', function () {
