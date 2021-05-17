@@ -121,8 +121,8 @@ function io_init() {
 
 function initDraw() {
     requestAnimationFrame(draw);
-    start_point_x = (canv.width / 2) - ingame_bg[0].width;
-    start_point_y = (canv.height - ingame_bg[0].height) / 2;
+    start_point_x = 0;
+    start_point_y = 0
 }
 
 function global_params_init() {
@@ -197,9 +197,11 @@ function create_images() {
     life_img.src = "images/bonus/life.png";
 
     ingame_bg = [
-        new Image()
+        new Image(),
+		new Image()
     ];
-    ingame_bg[0].src = "images/space/stations.png";
+    ingame_bg[0].src = "images/space/space.bmp";
+	ingame_bg[1].src = "images/space/station.png";
 
     ingame_bg_num = 0;
 
@@ -858,19 +860,35 @@ function ingame_draw() {
 }
 
 function draw_ingame_bg() {
+	// Space draw. i - x, j - y
+	for (var i = 0; i < 3; i++) {
+		for (var j = 0; j < 2; j++) {
+			ctx.drawImage(ingame_bg[0], start_point_x + ingame_bg[0].width * i, start_point_y + ingame_bg[0].height * j);
+			ctx.drawImage(ingame_bg[0], start_point_x + ingame_bg[0].width * i, start_point_y - ingame_bg[0].height * j);
+		};
+	};
+	
+	// Station draw. i - x, j - y
+	for (var i = 0; i < 2; i++) {
+		for (var j = 0; j < 4; j++) {
+			ctx.drawImage(ingame_bg[1], start_point_x + ingame_bg[1].width * i - 300, (start_point_y * 4) + ingame_bg[1].height * j);
+			ctx.drawImage(ingame_bg[1], start_point_x + ingame_bg[1].width * i - 300, (start_point_y * 4) - ingame_bg[1].height * j);
+		};
+	};
+	
     // num: 1 - for space, and 2 - for structures.
-    ctx.drawImage(ingame_bg[0], start_point_x, start_point_y);
+    //ctx.drawImage(ingame_bg[0], start_point_x, start_point_y);
 
-    ctx.drawImage(ingame_bg[0], start_point_x + ingame_bg[0].width, start_point_y); // Y-center bg
+    //ctx.drawImage(ingame_bg[0], start_point_x + ingame_bg[0].width, start_point_y); // Y-center bg
     //ctx.drawImage(ingame_bg[0], start_point_x + ingame_bg[0].width, start_point_y + ingame_bg[0].height); // Below it
-    ctx.drawImage(ingame_bg[0], start_point_x + ingame_bg[0].width, start_point_y - ingame_bg[0].height); // Over it
-    ctx.drawImage(ingame_bg[0], start_point_x, start_point_y - ingame_bg[0].height);
+    //ctx.drawImage(ingame_bg[0], start_point_x + ingame_bg[0].width, start_point_y - ingame_bg[0].height); // Over it
+    //ctx.drawImage(ingame_bg[0], start_point_x, start_point_y - ingame_bg[0].height);
 
     if (start_point_y == ingame_bg[0].height) {
         start_point_y = 0;
     }
 
-    start_point_y ++;
+    start_point_y += 2;
 }
 
 function draw_ships() {
