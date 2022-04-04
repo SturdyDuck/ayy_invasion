@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "dependencies": {
     "socket.io": "^3.0.4"
   }

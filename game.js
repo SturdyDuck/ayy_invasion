@@ -4,6 +4,12 @@ var ctx = canv.getContext('2d');
 var press_here_fade_alpha = 1;
 var press_here_pressed = false;
 
+// stats
+account_data = [localStorage.getItem("login"), localStorage.getItem("loginLower"), localStorage.getItem("password")];
+online_plays = 0;
+online_wins = 0;
+aliens_kill_count = 0;
+
 create_images();
 
 function press_here() {
@@ -70,6 +76,7 @@ function io_init() {
 
     socket.on('connect', function () {
         console.log('Connected to server');
+        mp_repeat_login();
     })
 
     socket.on('players online changed', function (p_online) {
@@ -97,13 +104,18 @@ function io_init() {
         init();
         started = false;
         mp_ready = false;
-
+        inMenu = true;
+        inLogin = false;
+        
         if (win == true) {
-            alert('WINNER');
+            endgame_screen_is_win = true;
         }
         else {
-            alert('LOOSER');
+            endgame_screen_is_win = false;
         }
+
+        inEndGameScreen = true;
+        mp_repeat_login();
 		isSecondPlayer = false;
     })
 
@@ -117,6 +129,66 @@ function io_init() {
     socket.on('play sound', function (sound) {
         mp_play_sound(sound);
     })
+
+    socket.on('login receive', function (data) {
+        try {
+            clearTimeout(mp_logreg_response_timeout);
+        }
+        catch (err) {
+            console.log(err);
+        }
+
+        if (data == "Incorrect") {
+            clear_logreg();
+            try {
+                logreg_message[0] = (lang == "ru" ? "Неверные логин/пароль" : "Incorrect login/password");
+            }
+            catch (err) {
+                console.log(err);
+            }
+            console.log(account_data);
+            localStorage.clear();
+            return;
+        }
+
+        account_data[0] = data.login;
+        account_data[1] = data.login.toLowerCase();
+        online_plays = data.online_plays;
+        online_wins = data.online_wins;
+        aliens_kill_count = data.aliens_kill_count;
+        pass = "";
+        try {
+            pass = textBoxes[1].content;
+        }
+        catch (err) {
+            pass = localStorage.getItem("password");
+        }
+        if (pass == "") pass = localStorage.getItem("password")
+        account_data[2] = pass;
+        clear_logreg();
+        inLogin = false;
+
+        // LocalStorage
+        //document.cookie = "login=" + account_data[0] + "; loginLower=" + account_data[1] + " ; password=" + pass;
+        localStorage.setItem("login", account_data[0]);
+        localStorage.setItem("loginLower", account_data[1]);
+        localStorage.setItem("password", pass);
+    })
+
+    socket.on('registration confirmed', function() {
+        clearTimeout(mp_logreg_response_timeout);
+        clear_logreg();
+        logreg_message[0] = (lang == "ru" ? "Регистрация подтверждена." : "Registration confirmed.");
+        logreg_message[1] = (lang == "ru" ? "Используйте введённые учётные данные для входа." : "You can enter with your login and password now.")
+        logreg_message[2] = (lang == "ru" ? "Приятной игры." : "Enjoy your game");
+    })
+
+    socket.on('registration failed', function(reason) {
+        clearTimeout(mp_logreg_response_timeout);
+        clear_logreg();
+        logreg_message[0] = (lang == "ru" ? "Регистрация не удалась." : "Registration failed");
+        logreg_message[1] = (lang == "ru" ? reason[0] : reason[1]);
+    })
 }
 
 function initDraw() {
@@ -127,11 +199,32 @@ function initDraw() {
 
 function global_params_init() {
     inMenu = true;
+    inLogin = false;
+    inEndGameScreen = false;
     inSearch = false;
     bg_frame_num = 0;
     lang = "ru";
     mouse_on = "";
     selected_enemy = "ai";
+
+    endgame_screen_is_win = false;
+    
+    tb_cursor_state = false;
+    textBoxes = [];
+    cursor_position = 0;
+    waiting_answer = false;
+    logreg_message = ["", "", ""];
+
+    let mp_logreg_response_timeout;
+
+    for (let i = 0; i < 2; i++) {
+        var tb = {
+            content: "",
+            is_selected: false
+        }
+        textBoxes.push(tb);
+    }
+
     try {
         sounds = sounds;
     }
@@ -140,6 +233,11 @@ function global_params_init() {
     }
 
     players_online = 0;
+}
+
+function tb_cursor_change() {
+    tb_cursor_state = tb_cursor_state ? false : true;
+    if (textBoxes[0].is_selected || textBoxes[1].is_selected) tb_cursor_timer = setTimeout(tb_cursor_change, 500);
 }
 
 function create_images() {
@@ -155,7 +253,26 @@ function create_images() {
     play_button_a = new Image();
     play_button.src = "images/menu_elements/play_button.png";
     play_button_a.src = "images/menu_elements/play_button_hover.png";
+	
+	logout_button = new Image();
+	logout_button_hover = new Image();
+	logout_button.src = "images/menu_elements/logout_button.png";
+	logout_button_hover.src = "images/menu_elements/logout_button_hover.png";
 
+    login_icon = new Image();
+    logout_icon = new Image();
+    login_icon.src = "images/menu_elements/login_icon.png";
+    logout_icon.src = "images/menu_elements/logout_icon.png";
+
+    textBox = new Image();
+    textBox_hover = new Image();
+    textBox.src = "images/menu_elements/textBox.png";
+    textBox_hover.src = "images/menu_elements/textBox_hover.png";
+
+    login_button = new Image();
+    login_button_hover = new Image();
+    login_button.src = "images/menu_elements/login_button.png";
+    login_button_hover.src = "images/menu_elements/login_button_hover.png";
 
     ai_select = new Image();
     human_select = new Image();
@@ -310,25 +427,42 @@ function draw() {
 
 function check_mouse() {
     canv.addEventListener("mousemove", function cm(e) {
-        var x = e.offsetX;
-        var y = e.offsetY;
+        let x = e.offsetX;
+        let y = e.offsetY;
+		
+		let logout_points = [[202, canv.height - logout_button.height], [202, canv.height], [235, canv.height]];
+		let logout_orientation1 = get_orientation_result(logout_points[0][0], logout_points[0][1], logout_points[1][0], logout_points[1][1], x, y);
+		let logout_orientation2 = get_orientation_result(logout_points[1][0], logout_points[1][1], logout_points[2][0], logout_points[2][1], x, y);
+		let logout_orientation3 = get_orientation_result(logout_points[2][0], logout_points[2][1], logout_points[0][0], logout_points[0][1], x, y);
+        
+        let login_buttons_x_pos = play_button_x - 100;
+        let login_buttons_x2_pos = play_button_x - 100 + login_button.width;
+        function increase_login_buttons_x() {
+            login_buttons_x_pos += login_button.width + 10;
+            return login_buttons_x_pos;
+        }
+        function increase_login_buttons_x2() {
+            login_buttons_x2_pos = login_buttons_x_pos + login_button.width;
+            return login_buttons_x2_pos;
+        }
 
         if (inMenu) {
+            login_buttons_y = play_button_y + 60 + (logout_button.height * 2);
             // Play button
             if (x >= play_button_x && y >= play_button_y &&
                 x <= play_button_x2 && y <= play_button_y2 &&
-                !inSearch) {
+                !inSearch && !inLogin && !inEndGameScreen) {
                 mouse_on = "play_button";
             }
             // ai|human select
             else if (x >= enemy_select_x && y >= enemy_select_y &&
                 x <= enemy_select_x2 - 100 && y <= enemy_select_y2 &&
-                !inSearch) {
+                !inSearch && !inLogin && !inEndGameScreen) {
                 mouse_on = "ai_select_button";
             }
             else if (x >= enemy_select_x + 100 && y >= enemy_select_y &&
                 x <= enemy_select_x2 && y <= enemy_select_y2 &&
-                !inSearch) {
+                !inSearch && !inLogin && !inEndGameScreen) {
                 mouse_on = "human_select_button";
             }
             // Search cancel button
@@ -349,6 +483,37 @@ function check_mouse() {
             else if (x >= sound_icon_x && x <= sound_icon_x2 &&
                 y >= sound_icon_y && y <= sound_icon_y2) {
                 mouse_on = "sound_icon";
+            }
+			// Logout button
+			else if (x <= 202 && x >= 168 && y >= canv.height - 44 ||
+			(logout_orientation1 == logout_orientation2 && logout_orientation2 == logout_orientation3)
+			) {
+				mouse_on = "logout_button";
+			}
+            else if (x >= play_button_x && x <= play_button_x + 200 &&
+            y >= play_button_y && y <= play_button_y + textBox.height && inLogin) {
+                mouse_on = "login_tb";
+            }
+            else if (x >= play_button_x && x <= play_button_x + 200 &&
+            y >= play_button_y + 70 && y <= play_button_y + 70 + textBox.height && inLogin) {
+                mouse_on = "pass_tb";
+            }
+            else if (x >= login_buttons_x_pos && x <= login_buttons_x2_pos &&
+                y >= login_buttons_y && y <= login_buttons_y + login_button.height && inLogin) {
+                    mouse_on = "login_button";
+            }
+            else if (x >= increase_login_buttons_x() && x <= increase_login_buttons_x2() &&
+                y >= login_buttons_y && y <= login_buttons_y + login_button.height && inLogin) {
+                    mouse_on = "register_button";
+            }
+            else if (x >= increase_login_buttons_x() && x <= increase_login_buttons_x2() &&
+                y >= login_buttons_y && y <= login_buttons_y + login_button.height && inLogin) {
+                    mouse_on = "cancel_login_button";
+            }
+            else if (x >= play_button_x && x <= play_button_x + play_button.width &&
+                y >= play_button_y + 170 && y <= play_button_y + 170 + play_button.height &&
+                inEndGameScreen) {
+                    mouse_on = "endscreen_accept";
             }
             else {
                 mouse_on = "";
@@ -374,7 +539,7 @@ function check_mouse() {
 function keyboard_add_events() {
     // Keyboard keys
     window.addEventListener("keydown", function kp(e) {
-        key_check(e.code)
+        key_check(e.code, e.shiftKey)
     });
     window.addEventListener("keyup", function kp2(e) {
         key_release(e.code);
@@ -382,6 +547,15 @@ function keyboard_add_events() {
 }
 
 function click_check() {
+    textBoxes.forEach(tb => {
+        tb.is_selected = false;
+    });
+    try {
+        clearTimeout(tb_cursor_timer);
+    }
+    catch(err){};
+    cursor_position = 0;
+
     switch (mouse_on) {
         case "play_button":
             if (selected_enemy == "human") {
@@ -420,21 +594,99 @@ function click_check() {
         case "cancel_button":
             unsearch_room();
             break;
+        case "logout_button":
+            if (account_data[0] == "") {
+                inLogin = true;
+                LoginStatus = "choice";
+            }
+            else {
+                account_data = ["", "", ""];
+                online_plays = 0;
+                online_wins = 0;
+                aliens_kill_count = 0;
+            }
+            break;
+        case "login_tb":
+            textBoxes[0].is_selected = true;
+            tb_cursor_change();
+            break;
+        case "pass_tb":
+            textBoxes[1].is_selected = true;
+            tb_cursor_change();
+            break;
+        case "cancel_login_button":
+            inLogin = false;
+            textBoxes[0].content = "";
+            textBoxes[1].content = "";
+            break;
+        case "login_button":
+            if (!textBoxesCheck()) break;
+            mp_login();
+            mp_logreg_response_timeout = setTimeout(mp_not_get_response, 10000);
+            break;
+        case "register_button":
+            if (!textBoxesCheck()) break;
+            mp_register();
+            mp_logreg_response_timeout = setTimeout(mp_not_get_response, 10000);
+            break;
+        case "endscreen_accept":
+            inEndGameScreen = false;
+            break;
     }
 }
 
-function key_check(key) {
+function key_check(key, isShift) {
+    if ((textBoxes[0].is_selected || textBoxes[1].is_selected) && key != "ArrowLeft" && key != "ArrowRight") {
+        textBoxes.forEach(tb => {
+            if (!tb.is_selected) {
+                return;
+            }
+
+            if (key == "Backspace") {
+                tb.content = delete_char(tb.content, true, cursor_position);
+                return;
+            }
+            else if (key == "Delete") {
+                tb.content = delete_char(tb.content, false, cursor_position);
+                return;
+            }
+
+            if (tb.content.length < 12) {
+                newkey = key.replace("Key", "");
+                newkey = newkey.replace("Digit", "");
+                if (is_letter(newkey) && tb.content.length < 12) {
+                    if (isShift) {
+                        tb.content = insert_char(tb.content, newkey, cursor_position);
+                        cursor_position++;
+                    }
+                    else {
+                        tb.content = insert_char(tb.content, newkey.toLowerCase(), cursor_position);
+                        cursor_position++;
+                    }
+                }
+                
+            }
+        });
+        return;
+    }
     switch (key) {
         case "KeyM":
             sounds = !sounds;
             break;
         case "ArrowLeft":
+            if ((textBoxes[0].is_selected || textBoxes[1].is_selected) && cursor_position > 0) {
+                cursor_position--;
+            }
             ship1.go_left = true;
             break;
         case "KeyA":
             ship1.go_left = true;
             break;
         case "ArrowRight":
+            if ((textBoxes[0].is_selected && cursor_position < textBoxes[0].content.length) 
+            || (textBoxes[1].is_selected && cursor_position < textBoxes[1].content.length)) {
+                cursor_position++;
+            }
             ship1.go_right = true;
             break;
         case "KeyD":
@@ -462,6 +714,14 @@ function key_release(key) {
     if (selected_enemy == 'human') {
         mp_send_direction(ship1.go_left, ship1.go_right);
     }
+}
+
+function textBoxesCheck() {
+    if (textBoxes[0].content == "" || textBoxes[1].content == "") {
+        logreg_message = ["Все поля должны быть заполнены!"];
+        return false;
+    }
+    else return true;
 }
 
 function cursor_changer() {
@@ -493,16 +753,160 @@ function uncheck_mouse() {
 function menu_draw() {
     draw_bg();
     draw_logo();
-    draw_play_button();
-    draw_enemy_select_button();
+    draw_stats();
+    if (inLogin) {
+        draw_login_textBoxes();
+        draw_login_buttons();
+        draw_logreg_message();
+    }
+    else if (inEndGameScreen) {
+        draw_endgame_screen();
+    }
+    else {
+        draw_play_button();
+        draw_enemy_select_button();
+    }
     draw_lang_select();
     draw_players_info();
+	draw_log_button();
 
     if (inSearch) {
         draw_search();
     }
 
     sounds_update();
+}
+
+function draw_endgame_screen() {
+    if (endgame_screen_is_win)  {
+        ctx.fillText((lang == "ru" ? "Победа" : "Victory"), play_button_x, play_button_y + 150);
+    }
+    else {
+        ctx.fillText((lang == "ru" ? "Поражение" : "Defeat"), play_button_x, play_button_y + 150);
+    }
+
+    ctx.drawImage((mouse_on == "endscreen_accept" ? play_button_a : play_button), play_button_x, play_button_y + 170);
+    ctx.fillText((endgame_screen_is_win ? "OK :)" : "OK :("), play_button_x + 80, play_button_y + 200 + 5);
+}
+
+function draw_stats() {
+    ctx.font = "bold 15pt sans-serif";
+    ctx.fillText((lang == "ru" ? "Игр онлайн сыграно: " : "Online plays: ") + online_plays, 10, 300);
+    ctx.fillText((lang == "ru" ? "Игр онлайн выиграно: " : "Online wins: ") + online_wins, 10, 330);
+    ctx.fillText((lang == "ru" ? "Пришельцев сбито: " : "Aliens hit: ") + aliens_kill_count, 10, 360);
+}
+
+function draw_logreg_message() {
+    ctx.font = "bold 15pt sans-serif";
+    for (let i = 0; i < logreg_message.length; i++) {
+        if (!logreg_message[i]) {
+            return;
+        }
+        else {
+            ctx.fillText(logreg_message[i], play_button_x - 100, play_button_y - (80 - 20 * i));
+        }
+    }
+}
+
+function draw_login_textBoxes() {
+    for (let i = 0; i < 2; i++) {
+        draw_login_textBox(i);
+    }
+}
+function draw_login_textBox(tb_num) {
+    let tb_x = play_button_x;
+    let tb_y = play_button_y + (70 * tb_num);
+
+    if ((tb_num == 0 && mouse_on == "login_tb") || (tb_num == 1 && mouse_on == "pass_tb")) {
+        ctx.drawImage(textBox_hover, tb_x, tb_y);
+    }
+    else {
+        ctx.drawImage(textBox, tb_x, tb_y);
+    }
+
+    let tb_names = [];
+    if (lang == "ru") {
+        tb_names = ["Имя", "Пароль"];
+    }
+    else {
+        tb_names = ["Nickname", "Password"];
+    }
+    
+    ctx.font = "bold 15pt sans-serif";
+    tb_y += play_button.height / 2;
+    let tb_names_x = tb_x - 80;
+    if (lang == "en") tb_names_x -= 30;
+    if (tb_num == 0) {
+        ctx.fillText(tb_names[0], tb_names_x, tb_y);
+    }
+    else {
+        ctx.fillText(tb_names[1], tb_names_x, tb_y);
+    }
+
+    let tb_content = textBoxes[tb_num].content;
+    if (textBoxes[tb_num].is_selected) {
+        if (tb_cursor_state) {
+            tb_content = tb_content.substring(0, cursor_position) + "|" + tb_content.slice(cursor_position);
+        }
+        else {
+            tb_content = tb_content.substring(0, cursor_position) + " " + tb_content.slice(cursor_position);
+        }
+    }
+    ctx.fillText(tb_content, tb_x + 10, tb_y);
+}
+
+function draw_login_buttons() {
+    let buttons_x = play_button_x - 100;
+    let buttons_y = play_button_y + 60 + (logout_button.height * 2);
+    login_buttons_x = buttons_x;
+    login_buttons_y = buttons_y;
+    let buttons_width = login_button.width;
+    let button_img;
+    let login_buttons_text;
+    if (lang == "ru") login_buttons_text = ["Войти", "Создать", "Отмена"];
+    else login_buttons_text = ["Login", "Register", "Cancel"];
+    // Login
+    button_img = mouse_on == "login_button" ? login_button_hover : login_button;
+    ctx.drawImage(button_img, buttons_x, buttons_y);
+    ctx.fillText(login_buttons_text[0], buttons_x + 15, buttons_y + 30);
+    buttons_x += buttons_width + 10;
+
+    // Register
+    button_img = mouse_on == "register_button" ? login_button_hover : login_button;
+    ctx.drawImage(button_img, buttons_x, buttons_y);
+    ctx.fillText(login_buttons_text[1], buttons_x + 15, buttons_y + 30);
+    buttons_x += buttons_width + 10;
+    // Cancel
+    button_img = mouse_on == "cancel_login_button" ? login_button_hover : login_button;
+    ctx.drawImage(button_img, buttons_x, buttons_y);
+    ctx.fillText(login_buttons_text[2], buttons_x + 15, buttons_y + 30);
+}
+
+function draw_log_button() {
+	if (mouse_on == "logout_button") {
+		ctx.drawImage(logout_button_hover, 0, canv.height - 44);
+	}
+	else {
+		ctx.drawImage(logout_button, 0, canv.height - 44);
+	}
+
+    if (account_data[0] == "") {
+        ctx.drawImage(login_icon, 177, canv.height - logout_button.height + 9);
+    }
+    else {
+        ctx.drawImage(logout_icon, 177, canv.height - logout_button.height + 9);
+    }
+	
+    ctx.font = "bold 20pt sans-serif";
+	if (lang == "ru" && account_data[0] == "") {
+        ctx.fillText("Гость", 20, canv.height - 10, 130);
+	}
+    else if (lang == "en" && account_data[0] == "") {
+        ctx.fillText("Guest", 20, canv.height - 10, 130);
+    }
+    else {
+        ctx.fillText(account_data[0], 20, canv.height - 10, 130);
+    }
 }
 
 function draw_bg() {
@@ -706,6 +1110,7 @@ function round_vars_init() {
 
 function round_init() {
     ready_timer_ms = 2999;
+    player_kill_count = 0;
 
     ingame_bg_select();
     round_vars_init();
@@ -816,6 +1221,9 @@ function bullets_update() {
                 ayy_fleet.splice(i2, 1);
                 drop_loot(item.owner, item2.x_pos, item2.y_pos);
                 boom_sound.play();
+                if (item.owner == "ship1_img") {
+                    player_kill_count++;
+                }
             }
         })
     });
@@ -1233,7 +1641,7 @@ function update_fleet() {
 
 function drop_loot(owner, x, y) {
     var drop_chance = Math.floor(Math.random() * Math.floor(100));
-    if (drop_chance >= 75) {
+    if (drop_chance >= 35) {
         drop_chance = Math.floor(Math.random() * Math.floor(100)); // gen new rand
 
         if (drop_chance <= 25) { // Вернуть на 25
@@ -1545,13 +1953,26 @@ function check_win() {
     if (ship1.lifes == 0 || ship2.lifes == 0) {
         radio.load();
         init();
+        try {
+            socket.emit('Singleplayer increase kill count', player_kill_count);
+            mp_repeat_login();
+        }
+        catch (err) {
+            console.log(err);
+        }
     }
 
     if (ship1.lifes == 0) {
-        alert('YOU LOSE!');
+        inMenu = true;
+        inLogin = false;
+        endgame_screen_is_win = false;
+        inEndGameScreen = true;
     }
     else if (ship2.lifes == 0) {
-        alert('YOU WIN!');
+        inMenu = true;
+        inLogin = false;
+        endgame_screen_is_win = true;
+        inEndGameScreen = true;
     }
 }
 
@@ -1959,10 +2380,98 @@ function mp_play_sound(sound) {
             pew_sound.play();
             break;
         case 'new fleet':
+            try {
             new_fleet_sound.play();
+            }
+            catch (err) {
+                console.log(err);
+            }
             break;
         case 'get extra':
             get_extra_sound.play();
             break;
     }
+}
+
+function mp_login() {
+    let data = [textBoxes[0].content.toLowerCase(), textBoxes[1].content];
+    socket.emit('login', data);
+    waiting_answer = true;
+    clear_logreg();
+    logreg_message[0] = "Подождите...";
+}
+function mp_repeat_login() {
+    let data = [account_data[1], account_data[2]];
+    socket.emit('login', data);
+    waiting_answer = true;
+    clear_logreg();
+    for (let i = 0; i < 3; i++) {
+        if (account_data[i] == null) account_data[i] = "";
+    }
+}
+function mp_register() {
+    let data = [textBoxes[0].content, textBoxes[0].content.toLowerCase(), textBoxes[1].content];
+    socket.emit('register', data);
+    waiting_answer = true;
+    clear_logreg();
+    logreg_message[0] = "Подождите...";
+}
+function mp_not_get_response() {
+    clear_logreg();
+    logreg_message = ["Не удалось связаться с сервером,", "пожалуйста, повторите попытку позже."];
+}
+
+function clear_logreg() {
+    try {
+        for (let i = 0; i < logreg_message.length; i++) {
+            logreg_message[i] = "";
+        }
+    }
+    catch (err) {
+        console.log(err);
+    }
+}
+
+// Utility funcs
+
+function get_orientation_result(x1, y1, x2, y2, px, py) {
+	//y1 = canv.height - y1;
+	//y2 = canv.height - y2;
+	var orientation = ((x2 - x1) * (py - y1)) - ((px - x1) * (y2 - y1));
+	if (orientation >= 0) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+function insert_char(str, ch, pos) {
+    var new_str = str.substring(0, pos);
+    new_str += ch;
+    new_str += str.slice(pos);
+    return new_str;
+}
+function delete_char(str, isBackspace, pos) {
+    if (isBackspace && pos <= 0) {
+        return str;
+    }
+    else if (!isBackspace && pos >= str.length) {
+        return str;
+    }
+    var new_str;
+    if (isBackspace) {
+        new_str = str.substring(0, pos - 1);
+        new_str += str.slice(pos);
+        cursor_position--;
+    }
+    else {
+        new_str = str.substring(0, pos);
+        new_str += str.slice(pos + 1);
+    }
+    return new_str;
+}
+function is_letter(ch) {
+    if (ch.match(/^[a-zа-яё0-9]+$/i) && ch.length == 1) return true;
+    else return false;
 }
