@@ -71,6 +71,8 @@ function io_init() {
     }
     catch (err) {
     }
+	
+	//mp_logreg_response_timeout = null;
 
     isSecondPlayer = false;
 
@@ -214,8 +216,6 @@ function global_params_init() {
     cursor_position = 0;
     waiting_answer = false;
     logreg_message = ["", "", ""];
-
-    mp_logreg_response_timeout = null;
 
     for (let i = 0; i < 2; i++) {
         var tb = {
@@ -604,6 +604,7 @@ function click_check() {
                 online_plays = 0;
                 online_wins = 0;
                 aliens_kill_count = 0;
+                localStorage.clear();
             }
             break;
         case "login_tb":
@@ -1644,36 +1645,36 @@ function drop_loot(owner, x, y) {
     if (drop_chance >= 35) {
         drop_chance = Math.floor(Math.random() * Math.floor(100)); // gen new rand
 
-        if (drop_chance <= 25) { // Вернуть на 25
+        if (drop_chance <= 25) { // Вернуть на 25, 25%
             // 3x bullet
             drop_extra(owner, "3x_bullets", 0, "green", x, y);
         }
-        else if (drop_chance <= 45) { // вернуть на 45
+        else if (drop_chance <= 45) { // вернуть на 45, 20%
             // 2x bullet speed
             drop_extra(owner, "2x_bullets_speed", 1, "green", x, y);
         }
-        else if (drop_chance <= 70) { // вернуть на 70
+        else if (drop_chance <= 70) { // вернуть на 70, 25%
             // 2x ship speed
             drop_extra(owner, "2x_ship_speed", 2, "green", x, y);
         }
-        else if (drop_chance <= 90) { // вернуть на 90
+        else if (drop_chance <= 90) { // вернуть на 90, 20%
             // extra life
             drop_extra(owner, "extra_life", 6, "purple", x, y);
         }
-        else if (drop_chance <= 92.5) { // вернуть на 92.5
+        else if (drop_chance <= 92.5) { // вернуть на 92.5, 2.5%
             // shield
             drop_extra(owner, "shield", 7, "purple", x, y);
         }
-        else if (drop_chance <= 95) { // вернуть на 95
+        else if (drop_chance <= 95) { // вернуть на 95, 2.5%
             // super-bullet
             drop_extra(owner, "super_bullets", 3, "gold", x, y);
         }
-        else if (drop_chance <= 97.5) { //вернуть на 97.5
+        else if (drop_chance <= 97.5) { //вернуть на 97.5, 2.5%
             // invision
             drop_extra(owner, "invision", 4, "gold", x, y);
         }
         else {
-            // half-invis bullets
+            // half-invis bullets, 2.5%
             drop_extra(owner, "stealth_bullets", 5, "gold", x, y);
         }
     }
@@ -1855,7 +1856,19 @@ function draw_extras_timer() {
                 ctx.arc(70, extra_y, extra_line_width, 1.5 * Math.PI, (ship2.extras[i] / (extras_length / 360) * 0.01745 + 1.5 * Math.PI));
                 ctx.stroke();
                 ctx.closePath();
-                ctx.drawImage(extra_imgs[i], img_x, extra_y - 14, x_size, y_size);
+                switch(i) {
+					case 1:
+						ctx.drawImage(extra_imgs[i], img_x, extra_y - 14, extra_imgs[i].width - 5, extra_imgs[i].height - 5);
+						break;
+					case 2:
+						ctx.drawImage(extra_imgs[i], img_x + 2, extra_y - 20, extra_imgs[i].width - 12, extra_imgs[i].height - 20);
+						break;
+					case 3:
+						ctx.drawImage(extra_imgs[i], img_x, extra_y - 14, extra_imgs[i].width - 15, extra_imgs[i].height - 20);
+						break;
+					default:
+						ctx.drawImage(extra_imgs[i], img_x, extra_y - 14, x_size, y_size);
+				}
 
                 extra_y += 75;
             }
@@ -1885,7 +1898,20 @@ function draw_extras_timer() {
                 ctx.arc(70, extra_y, extra_line_width, 1.5 * Math.PI, (ship1.extras[i] / (extras_length / 360) * 0.01745 + 1.5 * Math.PI));
                 ctx.stroke();
                 ctx.closePath();
-                ctx.drawImage(extra_imgs[i], img_x, extra_y - 14, x_size, y_size);
+				
+				switch(i) {
+					case 1:
+						ctx.drawImage(extra_imgs[i], img_x, extra_y - 14, extra_imgs[i].width - 5, extra_imgs[i].height - 5);
+						break;
+					case 2:
+						ctx.drawImage(extra_imgs[i], img_x + 2, extra_y - 20, extra_imgs[i].width - 12, extra_imgs[i].height - 20);
+						break;
+					case 3:
+						ctx.drawImage(extra_imgs[i], img_x, extra_y - 14, extra_imgs[i].width - 15, extra_imgs[i].height - 20);
+						break;
+					default:
+						ctx.drawImage(extra_imgs[i], img_x, extra_y - 14, x_size, y_size);
+				}
 
                 extra_y += 75;
             }
