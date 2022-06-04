@@ -215,7 +215,7 @@ function global_params_init() {
     waiting_answer = false;
     logreg_message = ["", "", ""];
 
-    var mp_logreg_response_timeout;
+    mp_logreg_response_timeout = null;
 
     for (let i = 0; i < 2; i++) {
         var tb = {
